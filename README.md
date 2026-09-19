@@ -23,6 +23,16 @@ Ele serve como material de consulta rápida para:
 - ele não é o mesmo mecanismo do `SO10`
 - em runtime, o SAP o busca por meio de `DOCU_GET_FOR_F1HELP` e `DOCU_GET`
 
+## Sumário
+
+- [O que é `DT`](#o-que-é-dt)
+- [Exemplo prático em ABAP](#exemplo-prático-em-abap)
+- [Como isso funciona na prática](#como-isso-funciona-na-prática)
+- [Por que usar esse padrão](#por-que-usar-esse-padrão)
+- [Como criar um objeto `DT`](#como-criar-um-objeto-dt)
+- [Coisas que costumam confundir](#coisas-que-costumam-confundir)
+- [Referências](#referências)
+
 ## O que é `DT`
 
 `DT` é um dos `Document Class` do SE61. Em termos simples, é um texto de diálogo/ajuda armazenado como objeto de documentação do SAP.
