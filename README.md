@@ -158,10 +158,3 @@ Também existe o caso de FMs que usam `TEXTLINE1/2/3` fixos, mas isso é outro p
 - [Dialog text — SAP Community Q&A](https://answers.sap.com/questions/1009487/dialog-text.html)
 - [DOKHL — Documentation: Headers](https://community.sap.com/t5/application-development-discussions/dokhl-documentations-headers-table/td-p/3536094)
 
-## Fechamento
-
-Esse repositório funciona bem como uma referência técnica leve: não é um manual oficial da SAP, mas é um material útil para entender o comportamento real do `DT` em ABAP e como ele se encaixa na prática.
-
-A ideia aqui é simples: guardar conhecimento de forma clara, acessível e reaproveitável.
-
-Basicamente, ele serve como lembrete rápido quando a dúvida aparecer de novo no futuro: o texto vem do SE61, não do código; a busca passa por `DOCU_GET_FOR_F1HELP`; a mensagem pode receber parâmetros; e o padrão vale mais quando a manutenção do texto precisa ficar fora do programa.
