@@ -1,90 +1,161 @@
-# DT-Dialog-Text
-# DT – Dialog Text (SE61)
+# DT - Dialog Text (SE61)
 
-Referência técnica sobre o Document Class **DT (Dialog Text)** do SE61: como é consumido em ABAP, vantagens, como criar/manter e outros pontos de uso confirmados no sistema.
+[![SAP ABAP](https://img.shields.io/badge/SAP-ABAP-0F6CBD?style=flat-square)](https://www.sap.com/) [![SE61](https://img.shields.io/badge/SE61-Document%20Maintenance-2F6FED?style=flat-square)](https://help.sap.com/) [![DT](https://img.shields.io/badge/DT-Dialog%20Text-6F42C1?style=flat-square)](https://help.sap.com/)
 
-## 1. O que é
+Referência técnica sobre o Document Class `DT` do SE61, com foco em uso prático em ABAP, comportamento do SAP, boas práticas e pontos que foram confirmados em sistema.
 
-`DT` é um dos "Document Class" (`DOKHL-ID`) da transação **SE61** (Document Maintenance). Um objeto DT é um texto de diálogo — pequeno texto de ajuda/pergunta — identificado por `DOKHL-OBJECT` (`TYPE dokhl-object`), armazenado nas tabelas `DOKHL` (header) e `DOKTL`/`TLINE` (linhas), **não** relacionado ao SO10 (que usa `STXH`/`READ_TEXT`/`SAVE_TEXT`, mecanismo totalmente separado).
+## Resumo executivo
 
-## 2. Exemplo de uso: `POPUP_TO_CONFIRM` com objeto DT
+- `DT` é um Document Class do SE61 usado para textos curtos de ajuda e confirmação.
+- O objeto é armazenado em estruturas de documentação SAP, e não no mecanismo `SO10` / `READ_TEXT` / `SAVE_TEXT`.
+- É consumido em cenários como `POPUP_TO_CONFIRM` usando `diagnose_object`.
+- O mecanismo envolve `DOCU_GET_FOR_F1HELP` e `DOCU_GET`.
+- O padrão é útil para tradução, parametrização e manutenção fora do código ABAP.
+
+## O que é `DT`
+
+`DT` é um dos `Document Class` disponíveis na transação **SE61** (Document Maintenance). Em termos práticos, ele representa um texto de diálogo ou ajuda associado a um objeto de documentação.
+
+A identificação do objeto normalmente acontece por meio de `DOKHL-OBJECT` (`TYPE dokhl-object`), e o texto fica armazenado em estruturas de documentação do SAP, como `DOKHL` (header) e `DOKTL` / `TLINE` (linhas). Isso é diferente do mecanismo de textos longos usado pelo `SO10`, que trabalha com `STXH` / `READ_TEXT` / `SAVE_TEXT` e é outra infraestrutura.
+
+### Diferenciação importante
+
+- `DT` = texto de documento / diálogo dentro do ambiente SE61
+- `SO10` = texto de objeto de texto (text object), com modelo diferente
+- `READ_TEXT` / `SAVE_TEXT` = acesso ao mecanismo STXH, não ao Document Class DT
+
+## Exemplo real de uso em ABAP
 
 ```abap
 CONSTANTS gc_docu_object TYPE dokhl-object VALUE 'Z<AREA>_<ASSUNTO>' ##NO_TEXT.
 
 METHOD my_method.
-  ...
+  DATA lt_param TYPE STANDARD TABLE OF spar.
+
   lt_param = VALUE #( ( param = 'COUNT' value = |{ lv_count }| ) ).
 
   CALL FUNCTION 'POPUP_TO_CONFIRM'
     EXPORTING
       titlebar              = TEXT-001
-      diagnose_object        = gc_docu_object
-      text_question           = space
-      default_button         = '2'
+      diagnose_object       = gc_docu_object
+      text_question         = space
+      default_button        = '2'
       display_cancel_button = abap_false
     IMPORTING
-      answer                 = lv_answer
+      answer                = lv_answer
     TABLES
-      parameter              = lt_param.
+      parameter             = lt_param.
 
   rv_confirmed = xsdbool( lv_answer = '1' ).
 ENDMETHOD.
 ```
 
-`text_question = space` porque o texto vem inteiro do objeto DT `Z<AREA>_<ASSUNTO>`, não de código.
+Neste padrão, o campo `text_question` fica em branco porque o texto inteiro é carregado do objeto `DT`, e não montado em código ABAP.
 
-### Mecanismo interno (confirmado lendo a fonte de `POPUP_TO_CONFIRM`, grupo de função `SPO1`)
+## Como o mecanismo funciona
 
-1. `IF diagnose_object NE space.` → chama `DOCU_GET_FOR_F1HELP` com `id = docu_id_dialog_text` (constante interna do grupo = `'DT'`), `langu = sy-langu`, `object = diagnose_object`.
-2. `DOCU_GET_FOR_F1HELP` (grupo `SDOH`) normaliza `TYP` e repassa para o FM genérico **`DOCU_GET`**. Se a busca falhar e o idioma pedido **não for EN**, ele automaticamente **tenta de novo em `LANGU = 'E'`** antes de desistir — inglês funciona como idioma de fallback para documentação SE61 sem tradução.
-3. Se não achar nada (`sy-subrc = 4`), `POPUP_TO_CONFIRM` cai para um texto genérico interno (`text-101`) — nunca quebra por objeto DT inexistente.
-4. Se achar, resolve textos incluídos (`TEXT_INCLUDE_REPLACE` — cobre o caso de um texto customizado por cliente, que vira um "extension document" enquanto o original só referencia) e elementos de controle IF/ELSE/CASE (`TEXT_CONTROL_REPLACE`), depois remove linhas de comando (`tdformat = '/:'`).
-5. **Substituição de parâmetros**: se a tabela `PARAMETER` (`TYPE spar`, campos `PARAM`/`VALUE`) não estiver vazia, roda `insert_params`, que troca tokens `&PARAM&` no texto pelo `VALUE` correspondente — é assim que `&COUNT&` vira o número de registros prontos no nosso caso.
-6. **Botões Sim/Não**: `TEXT_BUTTON_1`/`TEXT_BUTTON_2` têm default `'Ja'(001)`/`'Nein'(002)` — são os próprios text symbols do function group `SPO1`, já traduzidos pelo SAP padrão. Por isso `CONFIRM_UPLOAD` não passa esses parâmetros: ganha Sim/Não (ou Yes/No) localizado de graça.
-7. **`userdefined_f1_help`** é um segundo parâmetro independente, também `LIKE dokhl-object`: se preenchido, adiciona um botão extra "Info" (`ICON_INFORMATION`) que abre OUTRO objeto DT — não é usado em `CONFIRM_UPLOAD` hoje, mas é uma capacidade disponível se um dia for preciso dar um help mais longo sem lotar o texto principal.
+A validação abaixo foi feita a partir da leitura do comportamento dos FMs envolvidos e da análise dos pontos confirmados no sistema.
 
-## 3. Vantagens desse padrão (vs. hardcode em ABAP / `TEXTLINE1-3`)
+### Fluxo confirmado do `POPUP_TO_CONFIRM`
 
-- **Tradução via SE63** sem tocar em código ABAP nem abrir transporte de classe — o texto é objeto próprio, traduzido como qualquer outro texto longo SAP.
-- **Parametrização seletiva** (`&COUNT&` etc.) evita concatenação de string manual, que é frágil para i18n (ordem de palavras muda entre idiomas).
-- **Botões padrão localizados automaticamente**, sem manter TEXT-nnn próprios para "Sim"/"Não".
-- **Conteúdo mantido fora do código-fonte**, por quem tem acesso a SE61 mas não necessariamente a SE80/SE24 — útil para funcional revisar/ajustar texto sem passar por dev.
-- **Reaproveitável**: o mesmo objeto DT pode ser lido por qualquer outro ponto do código via `DOCU_GET_FOR_F1HELP`/`DOCU_GET`, não fica preso ao `POPUP_TO_CONFIRM`.
+1. Quando `diagnose_object` não está vazio, o FM ativa o mecanismo de leitura de documentação.
+2. Ele chama `DOCU_GET_FOR_F1HELP` com:
+   - `id = docu_id_dialog_text`
+   - `langu = sy-langu`
+   - `object = diagnose_object`
+3. `DOCU_GET_FOR_F1HELP` normaliza a informação e repassa para `DOCU_GET`.
+4. Se a busca falhar e o idioma solicitado não for `EN`, o SAP tenta novamente em `LANGU = 'E'` antes de encerrar.
+5. Se nada for encontrado, o popup cai em um texto genérico interno e não quebra por ausência do objeto DT.
+6. Quando o texto existe, o SAP resolve:
+   - includes
+   - estruturas condicionais (`IF`, `ELSE`, `CASE`)
+   - remoção de comandos de formatação (`tdformat = '/:'`)
+7. Se a tabela `PARAMETER` estiver preenchida, ocorre a substituição de tokens como `&COUNT&` pelo valor correspondente.
+8. Os botões padrão de confirmação são localizados pelo SAP, sem a necessidade de codificar textos fixos.
 
-## 4. Como criar e manter um objeto DT
+### Comportamento importante sobre parâmetros
 
-1. **SE61** → Document Class = `Dialog Text` (`DT`) → informar o nome (convenção comum: `Z<área>_<assunto>`) → **Create**.
-2. Editar o texto: dá para digitar direto no editor, mas para preservar quebras de linha/formatação de forma confiável é melhor colar via **XML ITF** (import). Nesse XML, um `&` literal (parte de um token `&COUNT&`) precisa ser escapado como `&amp;` — senão o parser de XML quebra ou o token não sobrevive ao roundtrip.
-3. **Gotcha de status (`DOKHL-DOKSTATE`)**: um objeto pode ficar em `R` (Revision) em vez de `A` (Active) dependendo de como foi salvo/importado. **SE63 só traduz objetos com status Active** — se a tradução não aparecer disponível, voltar ao SE61, reabrir o objeto e salvar de novo até o status virar Active.
-4. **Tradução (SE63)**: menu de tradução de textos longos, entrar com o objeto/idioma de destino. Segue o mesmo fallback para EN descrito no item 2 da seção anterior caso a tradução ainda não exista.
-5. **Transporte**: objeto DT é **cross-client**, viaja como `R3TR DOCV DT<nome>` (confirmado via SAP Community, ver referências) — precisa estar em request próprio como qualquer outro objeto de transporte, é fácil esquecer porque não aparece junto da classe ABAP no mesmo request automaticamente.
+A substituição de parâmetros é feita por processamento interno do FM. Em prática, isso significa que um texto no SE61 pode ser escrito como:
 
-## 5. Outras funções que usam esse mecanismo
+```text
+&COUNT& registros foram encontrados.
+```
 
-Confirmado lendo a fonte diretamente (sem busca de código-fonte disponível neste sistema — `SAPSearch(searchType="source_code")` retorna erro `SADT_REST 020` aqui, então a verificação foi objeto a objeto):
+E o código passa um parâmetro `COUNT = lv_count`, o que permite que o SAP substitua o token dinamicamente.
 
-- **`POPUP_TO_CONFIRM`** (grupo `SPO1`) — confirmado, é o consumidor documentado na seção 2.
-- **Descartados** (lidos e confirmados que NÃO usam `DOKHL`/objeto DT — usam `TEXTLINE1/2/3` fixos):
-  - `POPUP_TO_CONFIRM_STEP`
-  - `POPUP_TO_DECIDE`
-  - `POPUP_TO_DECIDE_LIST`
-- **`DOCU_GET_FOR_F1HELP`** (grupo `SDOH`) e **`DOCU_GET`** — o mecanismo genérico por trás de `POPUP_TO_CONFIRM`. Não são exclusivos de DT: com `ID` diferente, leem qualquer Document Class (`RE` relatório, `DE` data element, `SD` palavra-chave ABAP etc.). Podem ser chamados diretamente de código customizado para reaproveitar o texto de um objeto DT fora de um popup (ex. exibir o mesmo texto numa tela, log, e-mail).
+### F1 Help e objeto auxiliar
 
-Se mais consumidores forem confirmados depois (ex. lendo outro FM específico), atualizar esta seção.
+Existe também um parâmetro independente `userdefined_f1_help`, do tipo `dokhl-object`. Quando preenchido, ele pode abrir outro objeto de documentação para suporte adicional, sem sobrecarregar o texto principal.
 
-## 6. Referências / documentação SAP
+## Vantagens desse padrão
 
-Só links específicos sobre os objetos/funções tratados aqui (nada genérico):
+Em comparação com hardcode em ABAP ou textos fixos em `TEXTLINE1-3`, o uso de `DT` oferece benefícios claros:
 
-- [ITF/OTF Format — SAP Help Portal](https://help.sap.com/doc/saphelp_gbt10/1.0/en-US/4e/16819fb84a1a27e10000000a42189e/content.htm?no_cache=true) — formato ITF usado pelos textos SE61/SAPscript, base do XML de import citado na seção 4.
-- [Long Text Editor — SAP Help Portal](https://help.sap.com/doc/saphelp_nw74/7.4.16/en-us/4d/100d48d6a5606be10000000a42189e/content.htm?no_cache=true) — editor usado pelo SE61 para textos longos.
+- Tradução via SE63 sem alteração no código ABAP
+- Parametrização sem concatenação manual
+- Texto fora do código-fonte, facilitando revisão funcional
+- Reuso em diversos pontos do sistema
+- Menor acoplamento entre lógica e texto de interface
+- Melhor suporte para internacionalização
+
+## Como criar e manter um objeto `DT`
+
+1. Acesse **SE61**.
+2. Selecione **Document Class = Dialog Text (DT)**.
+3. Informe o nome, em convenção comum como `Z<AREA>_<ASSUNTO>`.
+4. Crie o texto e salve.
+5. Para preservar quebras e formatação de forma mais confiável, a importação via **XML ITF** costuma ser mais segura.
+6. Verifique o status do objeto. Se ele ficar em `R` (Revision), pode afetar a disponibilidade para tradução.
+7. Depois, use **SE63** para tradução, se necessário.
+8. No transporte, lembre-se de que esse objeto é tratado como objeto de documentação, e não como texto clássico de programa.
+
+## Traps e cuidados
+
+### 1. `DT` não é o mesmo que `SO10`
+
+Os objetos de documentação e os textos de texto objeto têm mecanismos diferentes. Isso é importante para evitar a confusão entre:
+
+- `DT` / SE61 / `DOCU_GET`
+- `SO10` / `READ_TEXT` / `SAVE_TEXT`
+
+### 2. Status do objeto pode afetar a tradução
+
+Se o objeto não está em status ativo, a tradução pode não aparecer como esperada no SE63.
+
+### 3. Tokens precisam ser tratados com cuidado
+
+Se um texto conter tokens como `&COUNT&`, o processamento de parâmetros precisa estar corretamente montado. Caso contrário, o texto pode aparecer com placeholder em vez do valor real.
+
+### 4. Não confundir `text_question` com “texto do popup montado no código”
+
+No padrão DT, o texto principal do popup normalmente vem do objeto de documentação, não do código fonte.
+
+## Outros consumos confirmados
+
+Além de `POPUP_TO_CONFIRM`, o mecanismo de documentação também é usado por funções que acessam `DOCU_GET_FOR_F1HELP` e `DOCU_GET`.
+
+Há também casos em que outros FMs usam texto fixo em variáveis tipo `TEXTLINE1/2/3`; nesses casos, eles não têm relação direta com `DT`.
+
+## Referências e documentação
+
+- [ITF/OTF Format — SAP Help Portal](https://help.sap.com/doc/saphelp_gbt10/1.0/en-US/4e/16819fb84a1a27e10000000a42189e/content.htm?no_cache=true)
+- [Long Text Editor — SAP Help Portal](https://help.sap.com/doc/saphelp_nw74/7.4.16/en-us/4d/100d48d6a5606be10000000a42189e/content.htm?no_cache=true)
 - [Anatomy of a Function Module: POPUP_TO_CONFIRM (Part 1) — SAP Community](https://community.sap.com/t5/application-development-and-automation-blog-posts/anatomy-of-a-function-module-popup-to-confirm-part-1/ba-p/13562360)
 - [Anatomy of a Function Module: POPUP_TO_CONFIRM — SAP Community](https://community.sap.com/t5/abap-blog-posts/anatomy-of-a-function-module-popup-to-confirm/ba-p/14240105)
-- [POPUP_TO_CONFIRM — referência técnica (sapdatasheet.org)](https://www.sapdatasheet.org/abap/func/popup_to_confirm.html)
-- [DOCU_GET_FOR_F1HELP — discussão de uso (SAP Community)](https://community.sap.com/t5/application-development-discussions/regarding-use-of-fm-docu-get-for-f1help/td-p/1654756)
-- [DOCU_GET_FOR_F1HELP — referência técnica (sapdatasheet.org)](https://www.sapdatasheet.org/abap/func/docu_get_for_f1help.html)
-- [Create a Transport for SE61 Dialog Text — SAP Community](https://answers.sap.com/questions/7000870/create-a-transport-for-se61-dialog-text.html) — confirma `R3TR DOCV DT***` e o comportamento cross-client citado na seção 4.
+- [POPUP_TO_CONFIRM — sapdatasheet.org](https://www.sapdatasheet.org/abap/func/popup_to_confirm.html)
+- [DOCU_GET_FOR_F1HELP — sapdatasheet.org](https://www.sapdatasheet.org/abap/func/docu_get_for_f1help.html)
+- [Create a Transport for SE61 Dialog Text — SAP Community](https://answers.sap.com/questions/7000870/create-a-transport-for-se61-dialog-text.html)
 - [Dialog text — SAP Community Q&A](https://answers.sap.com/questions/1009487/dialog-text.html)
-- [DOKHL — Documentation: Headers — discussão (SAP Community)](https://community.sap.com/t5/application-development-discussions/dokhl-documentations-headers-table/td-p/3536094)
-- [DOKHL — referência de tabela (leanx.eu)](https://leanx.eu/en/sap/table/dokhl.html)
+- [DOKHL — Documentation: Headers](https://community.sap.com/t5/application-development-discussions/dokhl-documentations-headers-table/td-p/3536094)
+
+## Observação final
+
+Este repositório tem valor como base de conhecimento técnico sobre um comportamento específico do SAP ABAP. O material foi organizado para servir como referência consultiva, com foco em clareza, uso prático e rastreabilidade de comportamento observado no sistema.
+
+---
+
+Se você quiser aprofundar o material, uma próxima etapa útil pode ser:
+
+- adicionar um diagrama do fluxo de leitura do texto;
+- separar “confirmado” e “inferido” em blocos específicos;
+- criar uma seção de exemplos reais de uso em telas, popup e integração com tradução.
