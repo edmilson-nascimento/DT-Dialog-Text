@@ -129,6 +129,19 @@ Em comparação com misturar texto direto no código ou usar `TEXTLINE1-3`, esse
 - melhor manutenção por funcional e por tradução
 - menos risco de quebrar i18n por ordem de palavras diferentes entre idiomas
 
+### Quando faz sentido usar `DT`
+
+- quando o texto precisa ser revisado por área funcional
+- quando a mensagem pode mudar sem mexer em código ABAP
+- quando o texto precisa de tradução ou variação por idioma
+- quando a mesma mensagem pode ser reutilizada em mais de um ponto
+
+### Quando talvez não seja a melhor escolha
+
+- quando o texto é curto, fixo e definitivamente não vai mudar
+- quando a mensagem está totalmente acoplada a uma lógica específica da tela
+- quando o projeto já usa outro padrão dominante e não vale introduzir um novo mecanismo
+
 ## Como criar um objeto `DT`
 
 1. Abrir **SE61**.
@@ -176,6 +189,8 @@ Também existe o caso de FMs que usam `TEXTLINE1/2/3` fixos, mas isso é outro p
 Esse repositório funciona bem como uma referência técnica leve: não é um manual oficial da SAP, mas é um material útil para entender o comportamento real do `DT` em ABAP e como ele se encaixa na prática.
 
 A ideia aqui é simples: guardar conhecimento de forma clara, acessível e reaproveitável.
+
+Basicamente, ele serve como um lembrete rápido para quando a dúvida aparecer de novo no futuro: “o texto vem do SE61, não do código; a busca passa por `DOCU_GET_FOR_F1HELP`; a mensagem pode receber parâmetros; e o padrão vale mais quando a manutenção do texto precisa ficar fora do programa.”
 
 Se quiser continuar, os próximos passos mais úteis seriam:
 
