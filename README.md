@@ -4,6 +4,14 @@
 
 Esse repositório reúne anotações e observações sobre o `DT` do SE61, com foco em como ele funciona na prática em ABAP e em situações reais de uso.
 
+### Resumo rápido
+
+- `DT` é um `Document Class` do SE61
+- normalmente é usado para textos de ajuda e confirmação
+- o texto vive fora do código e pode ser mantido por área funcional
+- o SAP busca esse texto por `DOCU_GET_FOR_F1HELP` / `DOCU_GET`
+- é um padrão diferente de `SO10` / `READ_TEXT` / `SAVE_TEXT`
+
 ## Sumário
 
 - [O que é `DT`](#o-que-é-dt)
@@ -16,9 +24,11 @@ Esse repositório reúne anotações e observações sobre o `DT` do SE61, com f
 
 ## O que é `DT`
 
-`DT` é um dos `Document Class` do SE61. Em termos simples, é um texto de diálogo/ajuda armazenado como objeto de documentação do SAP.
+`DT` é um dos `Document Class` do SE61. Em essência, é um texto de diálogo/ajuda armazenado como objeto de documentação do SAP.
 
-O objeto fica identificado por `DOKHL-OBJECT` (`TYPE dokhl-object`) e o conteúdo fica em estruturas como `DOKHL` e `DOKTL`/`TLINE`. Isso é diferente do `SO10`, que usa `STXH` / `READ_TEXT` / `SAVE_TEXT` e tem outro mecanismo.
+O objeto fica identificado por `DOKHL-OBJECT` (`TYPE dokhl-object`) e o conteúdo fica em estruturas como `DOKHL` e `DOKTL`/`TLINE`. O mecanismo é diferente do `SO10`, que usa `STXH` / `READ_TEXT` / `SAVE_TEXT`.
+
+> Este material funciona melhor como referência prática do que como cópia da documentação oficial da SAP.
 
 ### Diferença rápida
 
@@ -67,7 +77,7 @@ O ponto mais interessante aqui é que o SAP não precisa “montar” o texto no
 5. Se encontrar, resolve includes, condicionais e parâmetros.
 6. O texto final aparece no popup.
 
-> Em termos de rigor, esse fluxo é o que ficou mais claro ao analisar o comportamento do SAP e a chamada dos FMs. O objetivo aqui é manter o texto útil e legível, sem transformar o repositório em uma cópia de documentação oficial.
+> Em termos de rigor, esse é o comportamento mais claro que ficou identificado ao analisar a chamada dos FMs e o uso do objeto no runtime.
 
 ### O papel dos parâmetros
 
@@ -154,4 +164,4 @@ Esse repositório funciona bem como uma referência técnica leve: não é um ma
 
 A ideia aqui é simples: guardar conhecimento de forma clara, acessível e reaproveitável.
 
-Basicamente, ele serve como um lembrete rápido para quando a dúvida aparecer de novo no futuro: “o texto vem do SE61, não do código; a busca passa por `DOCU_GET_FOR_F1HELP`; a mensagem pode receber parâmetros; e o padrão vale mais quando a manutenção do texto precisa ficar fora do programa.”
+Basicamente, ele serve como lembrete rápido quando a dúvida aparecer de novo no futuro: o texto vem do SE61, não do código; a busca passa por `DOCU_GET_FOR_F1HELP`; a mensagem pode receber parâmetros; e o padrão vale mais quando a manutenção do texto precisa ficar fora do programa.
