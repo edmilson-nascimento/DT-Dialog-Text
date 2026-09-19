@@ -23,6 +23,23 @@ Ele serve como material de consulta rápida para:
 - ele não é o mesmo mecanismo do `SO10`
 - em runtime, o SAP o busca por meio de `DOCU_GET_FOR_F1HELP` e `DOCU_GET`
 
+## Status do material
+
+Este repositório tenta separar bem o que foi confirmado do que foi observado e interpretado.
+
+### Confirmado
+
+- `POPUP_TO_CONFIRM` usa `diagnose_object` para buscar um texto de documentação
+- o fluxo passa por `DOCU_GET_FOR_F1HELP` e `DOCU_GET`
+- o texto pode receber parâmetros via tabela `PARAMETER`
+- `DT` é um mecanismo diferente do `SO10`
+
+### Observado / inferido
+
+- o fallback em inglês parece ser parte do comportamento do SAP para documentação SE61
+- alguns detalhes do processamento interno podem variar conforme release e cenário
+- a explicação sobre `userdefined_f1_help` e alguns pontos de manutenção foram reunidos como notas práticas, não como documentação oficial
+
 ## Sumário
 
 - [O que é `DT`](#o-que-é-dt)
@@ -77,14 +94,16 @@ Neste padrão, o campo `text_question` fica em branco porque o texto inteiro é 
 
 O ponto mais interessante aqui é que o SAP não precisa “montar” o texto no código. Ele busca o texto em um objeto `DT` e aplica a lógica de apresentação por conta própria.
 
-### Fluxo que costuma acontecer
+### Fluxo observado
 
 1. `POPUP_TO_CONFIRM` recebe `diagnose_object`.
 2. Ele chama `DOCU_GET_FOR_F1HELP`.
 3. Esse FM repassa a busca para `DOCU_GET`.
-4. Se não encontrar no idioma atual, tenta fallback em inglês.
+4. Se não encontrar no idioma atual, o SAP tenta fallback em inglês.
 5. Se encontrar, resolve includes, condicionais e parâmetros.
 6. O texto final aparece no popup.
+
+> Em termos de rigor, esse fluxo é o que ficou mais claro ao analisar o comportamento do SAP e a chamada dos FMs. O objetivo aqui é manter o texto útil e legível, sem transformar o repositório em uma cópia de documentação oficial.
 
 ### O papel dos parâmetros
 
@@ -158,10 +177,8 @@ Esse repositório funciona bem como uma referência técnica leve: não é um ma
 
 A ideia aqui é simples: guardar conhecimento de forma clara, acessível e reaproveitável.
 
----
-
 Se quiser continuar, os próximos passos mais úteis seriam:
 
 - criar um pequeno diagrama do fluxo de leitura do texto;
-- separar melhor o que foi confirmado do que foi inferido;
-- adicionar uma seção de exemplos reais de uso em popup e tradução.
+- adicionar uma seção de exemplos reais de uso em popup e tradução;
+- revisar se vale transformar algumas notas em FAQ curta.
