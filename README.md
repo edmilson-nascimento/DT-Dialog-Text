@@ -4,48 +4,12 @@
 
 Esse repositório reúne anotações e observações sobre o `DT` do SE61, com foco em como ele funciona na prática em ABAP e em situações reais de uso.
 
-## Por que esse repositório existe
-
-A ideia aqui é guardar uma referência prática sobre um padrão que costuma aparecer em projetos SAP, mas nem sempre é documentado de forma clara: usar textos de documentação do SE61 como parte do fluxo de interface e confirmação em ABAP.
-
-Ele serve como material de consulta rápida para:
-
-- entender o conceito de `DT`
-- revisar como o SAP busca esse texto em runtime
-- lembrar como isso se relaciona com `POPUP_TO_CONFIRM`
-- evitar confusão com `SO10` / `READ_TEXT` / `SAVE_TEXT`
-
-## Resumo rápido
-
-- `DT` é um `Document Class` do SE61
-- normalmente é usado para textos de ajuda, confirmação e diálogo
-- o texto é armazenado em estruturas de documentação do SAP
-- ele não é o mesmo mecanismo do `SO10`
-- em runtime, o SAP o busca por meio de `DOCU_GET_FOR_F1HELP` e `DOCU_GET`
-
-## Status do material
-
-Este repositório tenta separar bem o que foi confirmado do que foi observado e interpretado.
-
-### Confirmado
-
-- `POPUP_TO_CONFIRM` usa `diagnose_object` para buscar um texto de documentação
-- o fluxo passa por `DOCU_GET_FOR_F1HELP` e `DOCU_GET`
-- o texto pode receber parâmetros via tabela `PARAMETER`
-- `DT` é um mecanismo diferente do `SO10`
-
-### Observado / inferido
-
-- o fallback em inglês parece ser parte do comportamento do SAP para documentação SE61
-- alguns detalhes do processamento interno podem variar conforme release e cenário
-- a explicação sobre `userdefined_f1_help` e alguns pontos de manutenção foram reunidos como notas práticas, não como documentação oficial
-
 ## Sumário
 
 - [O que é `DT`](#o-que-é-dt)
 - [Exemplo prático em ABAP](#exemplo-prático-em-abap)
 - [Como isso funciona na prática](#como-isso-funciona-na-prática)
-- [Por que usar esse padrão](#por-que-usar-esse-padrão)
+- [Quando faz sentido usar `DT`](#quando-faz-sentido-usar-dt)
 - [Como criar um objeto `DT`](#como-criar-um-objeto-dt)
 - [Coisas que costumam confundir](#coisas-que-costumam-confundir)
 - [Referências](#referências)
@@ -119,7 +83,7 @@ E no código, você passa o valor do parâmetro `COUNT`. Isso é bem útil porqu
 
 Existe também o parâmetro `userdefined_f1_help`, que pode abrir outro objeto de documentação. Não é o caso do uso mais simples, mas é uma possibilidade real quando o texto principal precisa de apoio extra.
 
-## Por que usar esse padrão?
+## Quando faz sentido usar `DT`
 
 Em comparação com misturar texto direto no código ou usar `TEXTLINE1-3`, esse modelo tem algumas vantagens bem claras:
 
@@ -129,7 +93,7 @@ Em comparação com misturar texto direto no código ou usar `TEXTLINE1-3`, esse
 - melhor manutenção por funcional e por tradução
 - menos risco de quebrar i18n por ordem de palavras diferentes entre idiomas
 
-### Quando faz sentido usar `DT`
+### Situações em que vale usar
 
 - quando o texto precisa ser revisado por área funcional
 - quando a mensagem pode mudar sem mexer em código ABAP
@@ -191,9 +155,3 @@ Esse repositório funciona bem como uma referência técnica leve: não é um ma
 A ideia aqui é simples: guardar conhecimento de forma clara, acessível e reaproveitável.
 
 Basicamente, ele serve como um lembrete rápido para quando a dúvida aparecer de novo no futuro: “o texto vem do SE61, não do código; a busca passa por `DOCU_GET_FOR_F1HELP`; a mensagem pode receber parâmetros; e o padrão vale mais quando a manutenção do texto precisa ficar fora do programa.”
-
-Se quiser continuar, os próximos passos mais úteis seriam:
-
-- criar um pequeno diagrama do fluxo de leitura do texto;
-- adicionar uma seção de exemplos reais de uso em popup e tradução;
-- revisar se vale transformar algumas notas em FAQ curta.
